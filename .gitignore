@@ -1,0 +1,47 @@
+# Python Bytecode and cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment variables & secrets (CRITICAL: NEVER COMMIT SECRETS)
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.cert
+
+# Local SQLite databases and persistent runtime storage
+*.db
+*.sqlite
+*.sqlite3
+data/*
+!data/.gitkeep
+
+# Scraped raw data, cache, and exported datasets
+exports/
+*.csv
+*.jsonl
+scratch/
+
+# Testing & Linting
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
