@@ -20,3 +20,11 @@ class SecurityError(WebDataForgeError):
 
 class UrlValidationError(SecurityError):
     """Raised when a supplied URL is invalid, malformed, or targets a forbidden network destination."""
+
+
+class ResponseTooLargeError(SecurityError):
+    """Raised when an HTTP response exceeds the configured maximum byte limit."""
+
+
+class NetworkError(WebDataForgeError):
+    """Raised when a network request fails due to timeouts, connection drops, or transport issues."""
