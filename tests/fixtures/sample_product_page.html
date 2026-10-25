@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechForge Store - Audio &amp; Peripherals</title>
+</head>
+<body>
+    <header>
+        <h1>Featured Tech Products</h1>
+        <p class="subtitle">Curated catalog for testing Web Data Forge extraction.</p>
+    </header>
+
+    <main>
+        <div class="product-grid" id="catalog">
+            <!-- Product 1: Complete fields -->
+            <article class="product-card" data-product-id="prod-101">
+                <h2 class="product-title">Wireless Noise-Canceling Headphones</h2>
+                <div class="product-meta">
+                    <span class="product-price">$199.99</span>
+                    <span class="product-rating">4.7</span>
+                    <span class="review-count">(1,240 reviews)</span>
+                </div>
+                <a class="product-link" href="/products/wireless-headphones">View Details</a>
+            </article>
+
+            <!-- Product 2: Complete fields with discount price -->
+            <article class="product-card" data-product-id="prod-102">
+                <h2 class="product-title">Mechanical RGB Gaming Keyboard</h2>
+                <div class="product-meta">
+                    <span class="product-price">$89.50</span>
+                    <span class="product-rating">4.3</span>
+                    <span class="review-count">(412 reviews)</span>
+                </div>
+                <a class="product-link" href="/products/gaming-keyboard">View Details</a>
+            </article>
+
+            <!-- Product 3: Edge Case - Brand new product with no reviews/rating -->
+            <article class="product-card" data-product-id="prod-103">
+                <h2 class="product-title">Ultra-Wide 34-Inch Curved Monitor</h2>
+                <div class="product-meta">
+                    <span class="product-price">$499.00</span>
+                    <!-- No rating element present for this new item -->
+                </div>
+                <a class="product-link" href="https://example.com/products/ultrawide-monitor">View Details</a>
+            </article>
+
+            <!-- Product 4: Edge Case - Out of stock item with missing price -->
+            <article class="product-card" data-product-id="prod-104">
+                <h2 class="product-title">Ergonomic Mesh Office Chair</h2>
+                <div class="product-meta">
+                    <span class="stock-badge out-of-stock">Currently Out of Stock</span>
+                    <span class="product-rating">3.9</span>
+                    <span class="review-count">(88 reviews)</span>
+                </div>
+                <a class="product-link" href="/products/ergonomic-chair">View Details</a>
+            </article>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 TechForge Mock Store. Permitted test fixture for educational web data extraction.</p>
+    </footer>
+</body>
+</html>
