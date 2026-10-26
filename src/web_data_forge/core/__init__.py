@@ -3,6 +3,8 @@ Core module for Web Data Forge.
 """
 
 from web_data_forge.core.exceptions import (
+    ExtractionError,
+    InvalidSelectorError,
     NetworkError,
     ResponseTooLargeError,
     SecurityError,
@@ -16,4 +18,7 @@ __all__ = [
     "UrlValidationError",
     "ResponseTooLargeError",
     "NetworkError",
+    "ExtractionError",
+    "InvalidSelectorError",
 ]
+

@@ -28,3 +28,12 @@ class ResponseTooLargeError(SecurityError):
 
 class NetworkError(WebDataForgeError):
     """Raised when a network request fails due to timeouts, connection drops, or transport issues."""
+
+
+class ExtractionError(WebDataForgeError):
+    """Raised when an extraction operation fails or encounters invalid markup/rules."""
+
+
+class InvalidSelectorError(ExtractionError):
+    """Raised when a supplied CSS selector is syntactically invalid."""
+
