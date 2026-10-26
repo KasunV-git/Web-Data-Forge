@@ -107,7 +107,7 @@ pytest
 
 - [x] **Week 1: Project Foundation** &mdash; Base configuration, skeleton, smoke tests, documentation.
 - [x] **Week 2: URL Safety & Static Extraction** &mdash; SSRF defense, Requests/BS4 parser, HTML fixtures.
-- [ ] **Week 3: Core Orchestrator** &mdash; Pydantic data contracts, pipeline coordination.
+- [x] **Week 3: Core Orchestrator** &mdash; Pydantic data contracts, pipeline coordination.
 - [ ] **Week 4: Streamlit UI & Safe Exports (MVP)** &mdash; Form input, results table, CSV/JSON downloads.
 - [ ] **Week 5: AI Planner** &mdash; Gemini API adapter, schema validation, manual fallback.
 - [ ] **Week 6: Quality & Storage** &mdash; Quality reporting, SQLite persistence with SQLAlchemy.
