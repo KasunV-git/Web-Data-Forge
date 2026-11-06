@@ -4,6 +4,7 @@ Interactive dashboard for configurable extraction, real-time safety inspection,
 data quality scoring, and safe exports.
 """
 
+import os
 from pathlib import Path
 import sys
 import time
@@ -17,6 +18,7 @@ if str(src_dir) not in sys.path:
 import pandas as pd
 import streamlit as st
 
+from web_data_forge.core.exceptions import PlannerError
 from web_data_forge.export import export_csv, export_json
 from web_data_forge.inspection.url_validator import validate_url
 from web_data_forge.models.contracts import (
@@ -26,6 +28,7 @@ from web_data_forge.models.contracts import (
     PipelineResult,
 )
 from web_data_forge.orchestrator.pipeline import ExtractionPipeline
+from web_data_forge.planner import AiPlanner, generate_heuristic_plan
 
 # Set Page Configuration
 st.set_page_config(
@@ -81,6 +84,19 @@ template_choice = st.sidebar.selectbox(
     index=0,
 )
 
+st.sidebar.header("🤖 AI Planner Settings")
+gemini_api_key = st.sidebar.text_input(
+    "Gemini API Key:",
+    type="password",
+    value=os.environ.get("GEMINI_API_KEY", ""),
+    help="Google Gemini API key for natural language plan translation.",
+)
+gemini_model = st.sidebar.selectbox(
+    "Gemini Model:",
+    ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"],
+    index=0,
+)
+
 with st.sidebar.expander("🛡️ Network Security Bounds", expanded=False):
     timeout = st.slider("Request Timeout (seconds)", min_value=1.0, max_value=30.0, value=10.0, step=1.0)
     max_mb = st.slider("Max Download Size (MB)", min_value=1, max_value=20, value=5, step=1)
@@ -93,11 +109,11 @@ st.subheader("1. Ingress Target & Scope")
 
 if template_choice == "Tech Products Catalog (Offline Fixture)":
     default_url = "https://example.com/store/tech-products"
-    default_container = ".product-card"
+    default_container = st.session_state.get("plan_container", ".product-card")
     is_offline_fixture = True
 else:
     default_url = "https://example.com"
-    default_container = ""
+    default_container = st.session_state.get("plan_container", "")
     is_offline_fixture = False
 
 col_url, col_status = st.columns([3, 1])
@@ -113,6 +129,62 @@ with col_status:
             st.markdown("<span class='safety-badge-safe'>✅ Scheme & Syntax Valid</span>", unsafe_allow_html=True)
         except Exception as e:
             st.markdown(f"<span class='safety-badge-blocked'>❌ Blocked: {e}</span>", unsafe_allow_html=True)
+
+# AI Planner Assistant
+with st.expander("✨ AI Extraction Planner (Natural Language)", expanded=True):
+    col_ai_prompt, col_ai_opts = st.columns([3, 1])
+    with col_ai_prompt:
+        ai_prompt = st.text_input(
+            "Natural Language Extraction Request:",
+            value="Extract all products with title, price, rating, and product link",
+            placeholder="e.g. Extract product title, price, rating, and product link",
+        )
+    with col_ai_opts:
+        allow_fallback_opt = st.checkbox(
+            "Allow Heuristic Fallback",
+            value=True,
+            help="Fall back to semantic DOM detection if API key is not provided or quota is exceeded.",
+        )
+
+    if st.button("🪄 Auto-Generate Plan with AI", type="secondary"):
+        with st.spinner("Analyzing DOM and generating CSS selector plan..."):
+            try:
+                if is_offline_fixture:
+                    plan_html = load_fixture_html()
+                else:
+                    from web_data_forge.security.network_guard import fetch_html
+                    plan_html, _, _ = fetch_html(target_url, verify_dns=False, timeout=timeout)
+
+                planner = AiPlanner(
+                    api_key=gemini_api_key or None,
+                    model_name=gemini_model,
+                )
+                generated_plan = planner.plan_from_html(
+                    user_instruction=ai_prompt,
+                    html=plan_html,
+                    target_url=target_url,
+                    allow_fallback=allow_fallback_opt,
+                )
+
+                st.session_state["plan_container"] = generated_plan.container_selector or ""
+                st.session_state["plan_fields"] = [
+                    {
+                        "name": f.name,
+                        "selector": f.selector,
+                        "extract": f.extract,
+                        "attr_name": f.attr_name or "",
+                        "data_type": f.data_type.value if hasattr(f.data_type, "value") else str(f.data_type),
+                        "regex": f.regex or "",
+                        "required": f.required,
+                    }
+                    for f in generated_plan.fields
+                ]
+                st.success(f"Generated extraction plan with {len(generated_plan.fields)} fields!")
+                st.rerun()
+            except PlannerError as err:
+                st.error(f"AI Planning Error: {err.message}")
+            except Exception as err:
+                st.error(f"Failed to generate plan: {err}")
 
 col_mode, col_container = st.columns([1, 2])
 with col_mode:
@@ -138,7 +210,9 @@ st.divider()
 st.subheader("2. Extraction Plan Studio")
 st.caption("Define CSS selectors and target types for each field. Null values are strictly reported—no hallucinated data.")
 
-if template_choice == "Tech Products Catalog (Offline Fixture)":
+if "plan_fields" in st.session_state:
+    initial_fields = st.session_state["plan_fields"]
+elif template_choice == "Tech Products Catalog (Offline Fixture)":
     initial_fields = [
         {"name": "product_id", "selector": ".", "extract": "attr", "attr_name": "data-product-id", "data_type": "string", "regex": "", "required": True},
         {"name": "title", "selector": "h2.product-title", "extract": "text", "attr_name": "", "data_type": "string", "regex": "", "required": True},

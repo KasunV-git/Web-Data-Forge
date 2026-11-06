@@ -109,7 +109,7 @@ pytest
 - [x] **Week 2: URL Safety & Static Extraction** &mdash; SSRF defense, Requests/BS4 parser, HTML fixtures.
 - [x] **Week 3: Core Orchestrator** &mdash; Pydantic data contracts, pipeline coordination.
 - [x] **Week 4: Streamlit UI & Safe Exports (MVP)** &mdash; Form input, results table, CSV/JSON downloads.
-- [ ] **Week 5: AI Planner** &mdash; Gemini API adapter, schema validation, manual fallback.
+- [x] **Week 5: AI Planner** &mdash; Gemini API adapter, structured schema validation, DOM pruner, manual/heuristic fallback.
 - [ ] **Week 6: Quality & Storage** &mdash; Quality reporting, SQLite persistence with SQLAlchemy.
 - [ ] **Week 7: Hardening, CI & Docker** &mdash; Dockerfile, docker-compose, GitHub Actions.
 - [ ] **Week 8: Portfolio Polish** &mdash; Architecture diagram, benchmark corpus, demo release.

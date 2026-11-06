@@ -37,3 +37,19 @@ class ExtractionError(WebDataForgeError):
 class InvalidSelectorError(ExtractionError):
     """Raised when a supplied CSS selector is syntactically invalid."""
 
+
+class PlannerError(WebDataForgeError):
+    """Base exception for AI Planner errors."""
+
+
+class MissingApiKeyError(PlannerError):
+    """Raised when Gemini API key is missing or not provided."""
+
+
+class PlannerApiError(PlannerError):
+    """Raised when Gemini API call fails due to network, auth, or quota issues."""
+
+
+class PlannerSchemaError(PlannerError):
+    """Raised when the generated LLM output fails schema validation."""
+
