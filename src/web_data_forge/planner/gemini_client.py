@@ -122,3 +122,4 @@ class GeminiPlannerClient:
                 f"Generated extraction plan failed validation: {exc}",
                 details={"raw_response": raw_text},
             ) from exc
+

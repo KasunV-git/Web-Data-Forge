@@ -198,3 +198,4 @@ class TestHeuristicPlanGenerator:
         plan = generate_heuristic_plan(table_html, target_url="https://example.com/table")
         assert plan.container_selector == "table tbody tr"
         assert len(plan.fields) == 2
+
