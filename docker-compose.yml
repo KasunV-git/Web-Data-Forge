@@ -1,0 +1,24 @@
+# ==============================================================================
+# Web Data Forge - Docker Compose Local Orchestration
+# Usage:
+#   docker compose up --build
+# ==============================================================================
+
+services:
+  web-data-forge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: web-data-forge-studio
+    ports:
+      - "8501:8501"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+      - DATABASE_URL=sqlite:////app/data/web_data_forge.db
+      - APP_ENV=production
+      - LOG_LEVEL=INFO
+    volumes:
+      # Mount local data folder to container for persistent SQLite DB and exports
+      - ./data:/app/data
+    restart: unless-stopped

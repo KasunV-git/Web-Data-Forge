@@ -79,3 +79,4 @@ class RecordModel(Base):
     errors_json = Column(Text, nullable=False, default="{}")
 
     job = relationship("JobModel", back_populates="records")
+

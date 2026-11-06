@@ -64,3 +64,4 @@ def get_db_session(db_url: Optional[str] = None, engine: Optional[Engine] = None
         raise
     finally:
         session.close()
+

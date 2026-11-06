@@ -92,6 +92,12 @@ cp .env.example .env
 pytest
 ```
 
+### 6. Run via Docker Compose (Containerized)
+```bash
+docker compose up --build
+```
+Open your browser at `http://localhost:8501` to access Web Data Forge Studio.
+
 ---
 
 ## Security & Ethical Principles
@@ -111,7 +117,7 @@ pytest
 - [x] **Week 4: Streamlit UI & Safe Exports (MVP)** &mdash; Form input, results table, CSV/JSON downloads.
 - [x] **Week 5: AI Planner** &mdash; Gemini API adapter, structured schema validation, DOM pruner, manual/heuristic fallback.
 - [x] **Week 6: Quality & Storage** &mdash; Multi-dimensional quality scoring, SQLite persistence with SQLAlchemy.
-- [ ] **Week 7: Hardening, CI & Docker** &mdash; Dockerfile, docker-compose, GitHub Actions.
+- [x] **Week 7: Hardening, CI & Docker** &mdash; Non-root Dockerfile, docker-compose orchestration, GitHub Actions CI matrix.
 - [ ] **Week 8: Portfolio Polish** &mdash; Architecture diagram, benchmark corpus, demo release.
 
 ---

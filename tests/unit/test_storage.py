@@ -136,3 +136,4 @@ def test_delete_job_cascades_records(in_memory_session, sample_result):
     assert deleted is True
     assert repo.get_job(job_id) is None
     assert len(repo.get_job_records(job_id)) == 0
+

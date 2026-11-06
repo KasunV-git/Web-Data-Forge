@@ -107,3 +107,4 @@ def test_grade_mapping():
     assert compute_quality_grade(75.0) == "C"
     assert compute_quality_grade(65.0) == "D"
     assert compute_quality_grade(45.0) == "F"
+

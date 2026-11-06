@@ -109,3 +109,4 @@ class JobRepository:
         self.session.delete(job)
         self.session.flush()
         return True
+
