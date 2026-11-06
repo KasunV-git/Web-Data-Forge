@@ -27,6 +27,7 @@ from web_data_forge.models.contracts import (
     QualityReport,
     RecordAudit,
 )
+from web_data_forge.quality import evaluate_quality
 from web_data_forge.security.network_guard import (
     DEFAULT_USER_AGENT,
     SafeFetcher,
@@ -108,6 +109,7 @@ class ExtractionPipeline:
 
         audits = self.process_markup(html_content, plan)
         quality = QualityReport.calculate(audits, plan.fields)
+        quality_assessment = evaluate_quality(audits, plan.fields)
         latency = round(time.perf_counter() - start_time, 4)
 
         telemetry = PipelineTelemetry(
@@ -125,6 +127,7 @@ class ExtractionPipeline:
             records=[a.coerced_data for a in audits],
             record_audits=audits,
             quality_report=quality,
+            quality_assessment=quality_assessment,
         )
 
     def run(
@@ -170,6 +173,7 @@ class ExtractionPipeline:
             # 3. Extraction & Quality Audit
             audits = self.process_markup(html_content, plan)
             quality = QualityReport.calculate(audits, plan.fields)
+            quality_assessment = evaluate_quality(audits, plan.fields)
             latency = round(time.perf_counter() - start_time, 4)
 
             telemetry = PipelineTelemetry(
@@ -187,6 +191,7 @@ class ExtractionPipeline:
                 records=[a.coerced_data for a in audits],
                 record_audits=audits,
                 quality_report=quality,
+                quality_assessment=quality_assessment,
             )
 
         except (WebDataForgeError, Exception) as exc:
@@ -206,6 +211,7 @@ class ExtractionPipeline:
             )
 
             empty_quality = QualityReport.calculate([], plan.fields)
+            empty_assessment = evaluate_quality([], plan.fields)
 
             return PipelineResult(
                 plan=plan,
@@ -213,4 +219,5 @@ class ExtractionPipeline:
                 records=[],
                 record_audits=[],
                 quality_report=empty_quality,
+                quality_assessment=empty_assessment,
             )

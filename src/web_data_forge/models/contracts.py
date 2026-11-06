@@ -299,3 +299,7 @@ class PipelineResult(BaseModel):
     records: List[Dict[str, Any]]
     record_audits: List[RecordAudit]
     quality_report: QualityReport
+    quality_assessment: Optional[Any] = Field(
+        default=None,
+        description="Multi-dimensional quality assessment (Completeness, Validity, Uniqueness)",
+    )
