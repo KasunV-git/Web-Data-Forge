@@ -133,6 +133,10 @@ class TestSafeFetcher:
         monkeypatch.setattr(
             requests.Session, "get", lambda *args, **kwargs: resp_redirect
         )
+        monkeypatch.setattr(
+            "socket.getaddrinfo",
+            lambda host, port, family, socktype: [(2, 1, 0, "", ("93.184.216.34", 80))],
+        )
 
         with pytest.raises(UrlValidationError, match="Blocked dangerous redirect"):
             fetch_html("https://example.com/login", verify_dns=True)
@@ -144,6 +148,10 @@ class TestSafeFetcher:
         )
         monkeypatch.setattr(
             requests.Session, "get", lambda *args, **kwargs: resp_redirect
+        )
+        monkeypatch.setattr(
+            "socket.getaddrinfo",
+            lambda host, port, family, socktype: [(2, 1, 0, "", ("93.184.216.34", 80))],
         )
 
         with pytest.raises(UrlValidationError, match="Blocked dangerous redirect"):

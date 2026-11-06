@@ -5,8 +5,15 @@ data quality scoring, and safe exports.
 """
 
 from pathlib import Path
+import sys
 import time
 from typing import List
+
+# Ensure package root 'src' is in sys.path when executed by Streamlit runner
+src_dir = Path(__file__).resolve().parents[2]
+if str(src_dir) not in sys.path:
+    sys.path.insert(0, str(src_dir))
+
 import pandas as pd
 import streamlit as st
 
@@ -168,7 +175,7 @@ st.divider()
 # Main Step 3: Run Execution
 st.subheader("3. Pipeline Execution")
 
-run_clicked = st.button("🚀 Run Extraction Pipeline", type="primary", use_container_width=True)
+run_clicked = st.button("🚀 Run Extraction Pipeline", type="primary", width="stretch")
 
 if run_clicked:
     # Build FieldContracts
@@ -257,7 +264,7 @@ if "last_result" in st.session_state:
                 file_name="extracted_data.csv",
                 mime="text/csv",
                 help="Formula-injection sanitized CSV file.",
-                use_container_width=True,
+                width="stretch",
             )
 
         with col_json:
@@ -267,7 +274,7 @@ if "last_result" in st.session_state:
                 data=json_data,
                 file_name="extracted_data.json",
                 mime="application/json",
-                use_container_width=True,
+                width="stretch",
             )
 
         # Audit Inspection
