@@ -372,10 +372,10 @@ with tab_studio:
                 csv_data = export_csv(result.records, sanitize_formulas=sanitize_csv)
                 st.download_button(
                     label="📄 Download Clean CSV",
-                    data=csv_data,
+                    data=csv_data.encode("utf-8-sig"),
                     file_name="extracted_data.csv",
                     mime="text/csv",
-                    help="Formula-injection sanitized CSV file.",
+                    help="Formula-injection sanitized CSV file (UTF-8 BOM encoded for Excel compatibility).",
                     width="stretch",
                 )
 
@@ -461,9 +461,10 @@ with tab_history:
                         st.dataframe(pd.DataFrame(past_records), use_container_width=True)
                         col_dcsv, col_djson, col_del = st.columns([1, 1, 1])
                         with col_dcsv:
+                            csv_bytes = export_csv(past_records, sanitize_formulas=True).encode("utf-8-sig")
                             st.download_button(
                                 "📄 Re-Download CSV",
-                                data=export_csv(past_records, sanitize_formulas=True),
+                                data=csv_bytes,
                                 file_name=f"job_{selected_job.id[:8]}_export.csv",
                                 mime="text/csv",
                                 width="stretch",
