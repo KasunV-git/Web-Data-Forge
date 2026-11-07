@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Benchmark Fixture: Adversarial &amp; Edge Cases</title>
+</head>
+<body>
+    <div class="edge-container">
+        <!-- Item 1: Formula Injection Attempt with '=' -->
+        <article class="edge-item">
+            <span class="name">=1+1; cmd.exe /c calc</span>
+            <span class="value">@SUM(A1:A100)</span>
+            <span class="comment">Safe normal comment</span>
+        </article>
+
+        <!-- Item 2: Formula Injection Attempt with '+' and '-' -->
+        <article class="edge-item">
+            <span class="name">+12345</span>
+            <span class="value">-99.95</span>
+            <span class="comment">@HYPERLINK("http://attacker.com","Click Here")</span>
+        </article>
+
+        <!-- Item 3: Missing Fields and Empty Elements -->
+        <article class="edge-item">
+            <span class="name">Partial Record Missing Value</span>
+            <!-- value span is intentionally missing -->
+            <span class="comment">   </span>
+        </article>
+
+        <!-- Item 4: Unicode and Special Characters -->
+        <article class="edge-item">
+            <span class="name">Unicode Product &euro;49.99 &#x2728; &lt;script&gt;alert(1)&lt;/script&gt;</span>
+            <span class="value">100.00</span>
+            <span class="comment">Multi-byte characters: &#26085;&#26412;&#35486; / &#20013;&#25991; / &#128522;</span>
+        </article>
+    </div>
+</body>
+</html>

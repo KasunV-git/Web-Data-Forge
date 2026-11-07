@@ -50,3 +50,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 
 # 11. Run Streamlit Studio Application
 CMD ["streamlit", "run", "src/web_data_forge/ui/app.py"]
+

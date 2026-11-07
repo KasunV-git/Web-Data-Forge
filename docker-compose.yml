@@ -22,3 +22,4 @@ services:
       # Mount local data folder to container for persistent SQLite DB and exports
       - ./data:/app/data
     restart: unless-stopped
+
