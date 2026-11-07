@@ -18,6 +18,19 @@ if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
     except Exception:
         pass
 
+# If run with global Python without dependencies, auto re-exec via project .venv
+_root_dir = Path(__file__).resolve().parent
+_venv_win = _root_dir / ".venv" / "Scripts" / "python.exe"
+_venv_posix = _root_dir / ".venv" / "bin" / "python"
+_target_venv = _venv_win if _venv_win.exists() else (_venv_posix if _venv_posix.exists() else None)
+
+if _target_venv and Path(sys.executable).resolve() != _target_venv.resolve():
+    try:
+        import bs4, pydantic, streamlit, sqlalchemy  # check if dependencies are available in current python
+    except ImportError:
+        import subprocess
+        sys.exit(subprocess.call([str(_target_venv), __file__] + sys.argv[1:]))
+
 # Ensure src is in python path
 src_dir = Path(__file__).resolve().parent / "src"
 if str(src_dir) not in sys.path:

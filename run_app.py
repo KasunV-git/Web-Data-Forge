@@ -13,7 +13,20 @@ if __name__ == "__main__":
     src_dir = root_dir / "src"
     app_path = src_dir / "web_data_forge" / "ui" / "app.py"
 
+    # Automatically resolve the project's virtual environment python if present
+    venv_py_win = root_dir / ".venv" / "Scripts" / "python.exe"
+    venv_py_posix = root_dir / ".venv" / "bin" / "python"
+
+    if venv_py_win.exists():
+        python_executable = str(venv_py_win)
+    elif venv_py_posix.exists():
+        python_executable = str(venv_py_posix)
+    else:
+        python_executable = sys.executable
+
     env = os.environ.copy()
+    env["STREAMLIT_BROWSER_GATHER_USAGE_STATS"] = "false"
+    env["STREAMLIT_SERVER_HEADLESS"] = "true"
     current_pythonpath = env.get("PYTHONPATH", "")
     env["PYTHONPATH"] = (
         f"{src_dir}{os.pathsep}{current_pythonpath}"
@@ -21,6 +34,13 @@ if __name__ == "__main__":
         else str(src_dir)
     )
 
-    cmd = [sys.executable, "-m", "streamlit", "run", str(app_path)]
+    cmd = [
+        python_executable,
+        "-m",
+        "streamlit",
+        "run",
+        str(app_path),
+        "--browser.gatherUsageStats=false",
+    ]
     subprocess.run(cmd, env=env)
 
