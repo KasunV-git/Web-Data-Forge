@@ -204,18 +204,21 @@ with tab_studio:
         extraction_mode = st.radio(
             "Extraction Mode:",
             ["Repeated Items (Collection)", "Single Item / Page"],
-            index=0 if default_container else 1,
+            index=0,
+            help="Choose 'Repeated Items' for lists, tables, and catalogs; choose 'Single Item' for standalone detail pages.",
         )
 
     with col_container:
         if extraction_mode == "Repeated Items (Collection)":
             container_selector = st.text_input(
                 "Container CSS Selector:",
-                value=default_container or ".item",
+                value=default_container if default_container else "",
+                placeholder="e.g. div.quote, article.product_pod, .item",
                 help="CSS selector matching each item card / row.",
             )
         else:
             container_selector = None
+            st.caption("ℹ️ Single item mode: extracts one record directly from the page DOM.")
 
     st.divider()
 
