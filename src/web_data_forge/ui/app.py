@@ -125,14 +125,18 @@ with tab_studio:
         default_container = st.session_state.get("plan_container", ".product-card")
         is_offline_fixture = True
     else:
-        default_url = "https://example.com"
+        default_url = st.session_state.get("target_url", "")
         default_container = st.session_state.get("plan_container", "")
         is_offline_fixture = False
 
     col_url, col_status = st.columns([3, 1])
 
     with col_url:
-        target_url = st.text_input("Target URL:", value=default_url, placeholder="https://example.com/...")
+        target_url = st.text_input(
+            "Target URL:",
+            value=default_url,
+            placeholder="e.g. https://quotes.toscrape.com/ or https://books.toscrape.com/",
+        )
 
     with col_status:
         st.write("Target Safety Status:")
@@ -289,38 +293,41 @@ with tab_studio:
                 has_errors = True
 
         if not has_errors and field_contracts:
-            try:
-                plan = ExtractionPlan(
-                    target_url=target_url,
-                    container_selector=container_selector if extraction_mode == "Repeated Items (Collection)" else None,
-                    fields=field_contracts,
-                    timeout=timeout,
-                    max_bytes=max_bytes,
-                    max_redirects=max_redirects,
-                )
-
-                pipeline = ExtractionPipeline()
-
-                with st.spinner("Executing extraction and security guardrails..."):
-                    if is_offline_fixture:
-                        sample_html = load_fixture_html()
-                        result: PipelineResult = pipeline.run_offline(plan, sample_html)
-                    else:
-                        result = pipeline.run(plan, verify_dns=True)
-
-                st.session_state["last_result"] = result
-
-                # Auto-save extraction run to SQLite database
+            if not target_url or target_url.strip() == "https://example.com":
+                st.warning("⚠️ 'https://example.com' is a placeholder domain. Please enter your real target website URL (e.g. `https://quotes.toscrape.com/` or `https://books.toscrape.com/`).")
+            else:
                 try:
-                    with get_db_session() as session:
-                        repo = JobRepository(session)
-                        saved_job = repo.save_job(result, quality=result.quality_assessment)
-                        st.session_state["last_saved_job_id"] = saved_job.id
-                except Exception as db_err:
-                    st.warning(f"Could not persist run to database: {db_err}")
+                    plan = ExtractionPlan(
+                        target_url=target_url,
+                        container_selector=container_selector if extraction_mode == "Repeated Items (Collection)" else None,
+                        fields=field_contracts,
+                        timeout=timeout,
+                        max_bytes=max_bytes,
+                        max_redirects=max_redirects,
+                    )
 
-            except Exception as exc:
-                st.error(f"Pipeline initialization failed: {exc}")
+                    pipeline = ExtractionPipeline()
+
+                    with st.spinner("Executing extraction and security guardrails..."):
+                        if is_offline_fixture:
+                            sample_html = load_fixture_html()
+                            result: PipelineResult = pipeline.run_offline(plan, sample_html)
+                        else:
+                            result = pipeline.run(plan, verify_dns=True)
+
+                    st.session_state["last_result"] = result
+
+                    # Auto-save extraction run to SQLite database
+                    try:
+                        with get_db_session() as session:
+                            repo = JobRepository(session)
+                            saved_job = repo.save_job(result, quality=result.quality_assessment)
+                            st.session_state["last_saved_job_id"] = saved_job.id
+                    except Exception as db_err:
+                        st.warning(f"Could not persist run to database: {db_err}")
+
+                except Exception as exc:
+                    st.error(f"Pipeline initialization failed: {exc}")
 
     # Display Results if Available
     if "last_result" in st.session_state:
@@ -400,6 +407,11 @@ with tab_studio:
                     st.json(result.quality_report.missing_fields_summary)
         else:
             st.info("No records extracted.")
+            if result.plan.container_selector:
+                st.warning(
+                    f"💡 No elements matched container selector `{result.plan.container_selector}` on `{result.plan.target_url}`. "
+                    "Please verify that the target URL is correct and that the container CSS selector exists in the page HTML."
+                )
 
 # Tab 2: Job History & Datasets
 with tab_history:
