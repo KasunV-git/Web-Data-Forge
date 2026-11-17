@@ -1,13 +1,12 @@
 """
-Web Data Forge - Streamlit Studio UI
-Interactive dashboard for configurable extraction, real-time safety inspection,
-data quality scoring, and safe exports.
+Web Data Forge - Streamlit Studio UI (Redesigned)
+A beginner-friendly 3-step wizard: Enter URL → Describe What to Extract → Download Data.
+Advanced controls are hidden in a collapsible "Expert Settings" section.
 """
 
 import os
 from pathlib import Path
 import sys
-import time
 from typing import List
 
 # Ensure package root 'src' is in sys.path when executed by Streamlit runner
@@ -39,28 +38,67 @@ from web_data_forge.storage import (
 # Initialize database schema
 init_db()
 
-# Set Page Configuration
+# ─── Page Config ───────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Web Data Forge Studio",
+    page_title="Web Data Forge",
     page_icon="⚡",
-    layout="wide",
-    initial_sidebar_state="expanded",
+    layout="centered",
+    initial_sidebar_state="collapsed",
 )
 
-# Custom Styling
-st.markdown(
-    """
-    <style>
-        .block-container { padding-top: 1.5rem; padding-bottom: 2rem; }
-        .stMetric { background-color: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1); }
-        .safety-badge-safe { color: #10B981; font-weight: 600; padding: 4px 8px; border-radius: 4px; background: rgba(16, 185, 129, 0.1); }
-        .safety-badge-blocked { color: #EF4444; font-weight: 600; padding: 4px 8px; border-radius: 4px; background: rgba(239, 68, 68, 0.1); }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+# ─── Global Styles ─────────────────────────────────────────────────────────────
+st.markdown("""
+<style>
+    /* Cleaner page padding */
+    .block-container { padding-top: 2rem; padding-bottom: 3rem; max-width: 860px; }
+
+    /* Step badge */
+    .step-badge {
+        display: inline-block;
+        background: #6366f1;
+        color: white;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 2px 10px;
+        border-radius: 999px;
+        margin-bottom: 4px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+    .step-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin: 0 0 4px 0;
+    }
+    .step-hint {
+        font-size: 0.88rem;
+        color: #888;
+        margin-bottom: 1rem;
+    }
+
+    /* URL status pills */
+    .pill-ok  { color:#10B981; font-weight:600; background:rgba(16,185,129,.1); padding:3px 10px; border-radius:999px; font-size:0.85rem; }
+    .pill-err { color:#EF4444; font-weight:600; background:rgba(239,68,68,.1); padding:3px 10px; border-radius:999px; font-size:0.85rem; }
+
+    /* Quick example chips */
+    .chip-row { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 16px 0; }
+    .chip { background:#1e293b; border:1px solid #334155; border-radius:999px;
+            padding:4px 14px; font-size:0.82rem; color:#94a3b8; cursor:pointer; }
+
+    /* Result grade badge */
+    .grade-A { color:#10B981; font-size:2rem; font-weight:800; }
+    .grade-B { color:#84cc16; font-size:2rem; font-weight:800; }
+    .grade-C { color:#facc15; font-size:2rem; font-weight:800; }
+    .grade-F { color:#EF4444; font-size:2rem; font-weight:800; }
+
+    /* Hide default streamlit footer & menu */
+    #MainMenu {visibility:hidden;}
+    footer {visibility:hidden;}
+</style>
+""", unsafe_allow_html=True)
 
 
+# ─── Helpers ───────────────────────────────────────────────────────────────────
 def load_fixture_html() -> str:
     """Load local sample fixture HTML for offline testing."""
     root_dir = Path(__file__).resolve().parents[3]
@@ -70,435 +108,404 @@ def load_fixture_html() -> str:
     return ""
 
 
-# Header
-col_header, col_badge = st.columns([3, 1])
-with col_header:
-    st.title("⚡ Web Data Forge Studio")
-    st.caption("AI-assisted, configurable web data extraction, validation, and monitoring platform.")
-with col_badge:
-    st.write("")
-    st.markdown(
-        "<div style='text-align: right;'><span class='safety-badge-safe'>🛡️ SSRF Guard: STRICT</span></div>",
-        unsafe_allow_html=True,
-    )
+QUICK_EXAMPLES = [
+    ("📚 Books",    "https://books.toscrape.com/",   "article.product_pod",  "Extract book title, price, and star rating"),
+    ("💬 Quotes",   "https://quotes.toscrape.com/",  "div.quote",            "Extract quote text and author name"),
+    ("📰 Hacker News", "https://news.ycombinator.com/", ".athing",           "Extract news headline and link"),
+]
+
+GRADE_CSS = {"A": "grade-A", "B": "grade-B", "C": "grade-C", "D": "grade-C", "F": "grade-F"}
+
+
+def url_ok(url: str) -> bool:
+    try:
+        validate_url(url, verify_dns=False)
+        return True
+    except Exception:
+        return False
+
+
+# ─── Header ────────────────────────────────────────────────────────────────────
+st.markdown("## ⚡ Web Data Forge")
+st.markdown("<p style='color:#888;margin-top:-12px;'>Turn any website into a clean, downloadable dataset — no coding needed.</p>", unsafe_allow_html=True)
+st.divider()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  STEP 1 — Enter a Website URL
+# ═══════════════════════════════════════════════════════════════════════════════
+st.markdown('<span class="step-badge">Step 1 of 3</span>', unsafe_allow_html=True)
+st.markdown('<p class="step-title">🌐 Enter the website URL</p>', unsafe_allow_html=True)
+st.markdown('<p class="step-hint">Paste the full address of the page you want to extract data from.</p>', unsafe_allow_html=True)
+
+# --- Quick example buttons ---
+st.markdown("**Try a quick example:**")
+cols = st.columns(len(QUICK_EXAMPLES))
+for i, (label, url, container, prompt) in enumerate(QUICK_EXAMPLES):
+    if cols[i].button(label, key=f"ex_{i}", use_container_width=True):
+        st.session_state["target_url"]        = url
+        st.session_state["plan_container"]    = container
+        st.session_state["ai_prompt"]         = prompt
+        st.session_state.pop("plan_fields", None)   # reset any stale field plan
+        st.session_state.pop("last_result", None)
+        st.rerun()
+
+# --- URL input ---
+target_url = st.text_input(
+    label="Website URL",
+    value=st.session_state.get("target_url", ""),
+    placeholder="https://quotes.toscrape.com/",
+    label_visibility="collapsed",
+)
+
+if target_url:
+    if url_ok(target_url):
+        st.markdown('<span class="pill-ok">✅ URL looks good</span>', unsafe_allow_html=True)
+        st.session_state["target_url"] = target_url
+    else:
+        st.markdown('<span class="pill-err">❌ Invalid or unsafe URL</span>', unsafe_allow_html=True)
 
 st.divider()
 
-# Sidebar: Configuration & Presets
-st.sidebar.header("⚙️ Engine Configuration")
 
-template_choice = st.sidebar.selectbox(
-    "Load Preset Template:",
-    ["Tech Products Catalog (Offline Fixture)", "Custom Target"],
-    index=0,
+# ═══════════════════════════════════════════════════════════════════════════════
+#  STEP 2 — Describe What to Extract
+# ═══════════════════════════════════════════════════════════════════════════════
+st.markdown('<span class="step-badge">Step 2 of 3</span>', unsafe_allow_html=True)
+st.markdown('<p class="step-title">🤖 Describe what data you want</p>', unsafe_allow_html=True)
+st.markdown('<p class="step-hint">Write in plain English what you want to extract. The AI will figure out the rest.</p>', unsafe_allow_html=True)
+
+ai_prompt = st.text_area(
+    label="What do you want to extract?",
+    value=st.session_state.get("ai_prompt", "Extract the title, price, and author of each item"),
+    placeholder="e.g. Extract the quote text and author name from every quote card",
+    height=90,
+    label_visibility="collapsed",
 )
 
-st.sidebar.header("🤖 AI Planner Settings")
-gemini_api_key = st.sidebar.text_input(
-    "Gemini API Key:",
-    type="password",
-    value=os.environ.get("GEMINI_API_KEY", ""),
-    help="Google Gemini API key for natural language plan translation.",
-)
-gemini_model = st.sidebar.selectbox(
-    "Gemini Model:",
-    ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"],
-    index=0,
-)
+# Optional Gemini API key (friendly framing)
+with st.expander("🔑 Use AI-powered extraction (optional — works without it too)"):
+    st.caption("Paste your free Google Gemini API key to get smarter, more accurate field detection. Without it, a built-in rule-based engine is used automatically.")
+    gemini_api_key = st.text_input(
+        "Gemini API Key",
+        type="password",
+        value=os.environ.get("GEMINI_API_KEY", ""),
+        placeholder="AIza...",
+        label_visibility="collapsed",
+    )
 
-with st.sidebar.expander("🛡️ Network Security Bounds", expanded=False):
-    timeout = st.slider("Request Timeout (seconds)", min_value=1.0, max_value=30.0, value=10.0, step=1.0)
-    max_mb = st.slider("Max Download Size (MB)", min_value=1, max_value=20, value=5, step=1)
-    max_bytes = max_mb * 1024 * 1024
-    max_redirects = st.slider("Max Redirect Hops", min_value=0, max_value=10, value=5, step=1)
-    sanitize_csv = st.checkbox("OWASP Formula Injection Defense", value=True, help="Neutralize spreadsheet formulas starting with =, +, -, @")
+# ── Advanced / Expert Settings (hidden by default) ───────────────────────────
+with st.expander("⚙️ Advanced settings — for experienced users"):
+    st.caption("You can manually override what the AI detects below.")
 
-# Top-level Tabs
-tab_studio, tab_history = st.tabs(["⚡ Extraction Studio", "📜 Job History & Datasets"])
-
-with tab_studio:
-    # Main Step 1: Target Definition
-    st.subheader("1. Ingress Target & Scope")
-
-    if template_choice == "Tech Products Catalog (Offline Fixture)":
-        default_url = "https://example.com/store/tech-products"
-        default_container = st.session_state.get("plan_container", ".product-card")
-        is_offline_fixture = True
-    else:
-        default_url = st.session_state.get("target_url", "")
-        default_container = st.session_state.get("plan_container", "")
-        is_offline_fixture = False
-
-    col_url, col_status = st.columns([3, 1])
-
-    with col_url:
-        target_url = st.text_input(
-            "Target URL:",
-            value=default_url,
-            placeholder="e.g. https://quotes.toscrape.com/ or https://books.toscrape.com/",
+    adv_col1, adv_col2 = st.columns(2)
+    with adv_col1:
+        container_selector_override = st.text_input(
+            "Container CSS Selector",
+            value=st.session_state.get("plan_container", ""),
+            placeholder="e.g. div.quote or article.product_pod",
+            help="The CSS selector that wraps each repeating item on the page.",
         )
-
-    with col_status:
-        st.write("Target Safety Status:")
-        if target_url:
-            try:
-                validate_url(target_url, verify_dns=False)
-                st.markdown("<span class='safety-badge-safe'>✅ Scheme & Syntax Valid</span>", unsafe_allow_html=True)
-            except Exception as e:
-                st.markdown(f"<span class='safety-badge-blocked'>❌ Blocked: {e}</span>", unsafe_allow_html=True)
-
-    # AI Planner Assistant
-    with st.expander("✨ AI Extraction Planner (Natural Language)", expanded=True):
-        col_ai_prompt, col_ai_opts = st.columns([3, 1])
-        with col_ai_prompt:
-            ai_prompt = st.text_input(
-                "Natural Language Extraction Request:",
-                value="Extract all products with title, price, rating, and product link",
-                placeholder="e.g. Extract product title, price, rating, and product link",
-            )
-        with col_ai_opts:
-            allow_fallback_opt = st.checkbox(
-                "Allow Heuristic Fallback",
-                value=True,
-                help="Fall back to semantic DOM detection if API key is not provided or quota is exceeded.",
-            )
-
-        if st.button("🪄 Auto-Generate Plan with AI", type="secondary"):
-            with st.spinner("Analyzing DOM and generating CSS selector plan..."):
-                try:
-                    if is_offline_fixture:
-                        plan_html = load_fixture_html()
-                    else:
-                        from web_data_forge.security.network_guard import fetch_html
-                        plan_html, _, _ = fetch_html(target_url, verify_dns=False, timeout=timeout)
-
-                    planner = AiPlanner(
-                        api_key=gemini_api_key or None,
-                        model_name=gemini_model,
-                    )
-                    generated_plan = planner.plan_from_html(
-                        user_instruction=ai_prompt,
-                        html=plan_html,
-                        target_url=target_url,
-                        allow_fallback=allow_fallback_opt,
-                    )
-
-                    st.session_state["plan_container"] = generated_plan.container_selector or ""
-                    st.session_state["plan_fields"] = [
-                        {
-                            "name": f.name,
-                            "selector": f.selector,
-                            "extract": f.extract,
-                            "attr_name": f.attr_name or "",
-                            "data_type": f.data_type.value if hasattr(f.data_type, "value") else str(f.data_type),
-                            "regex": f.regex or "",
-                            "required": f.required,
-                        }
-                        for f in generated_plan.fields
-                    ]
-                    st.success(f"Generated extraction plan with {len(generated_plan.fields)} fields!")
-                    st.rerun()
-                except PlannerError as err:
-                    st.error(f"AI Planning Error: {err.message}")
-                except Exception as err:
-                    st.error(f"Failed to generate plan: {err}")
-
-    col_mode, col_container = st.columns([1, 2])
-    with col_mode:
-        extraction_mode = st.radio(
-            "Extraction Mode:",
-            ["Repeated Items (Collection)", "Single Item / Page"],
+    with adv_col2:
+        gemini_model = st.selectbox(
+            "AI Model",
+            ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"],
             index=0,
-            help="Choose 'Repeated Items' for lists, tables, and catalogs; choose 'Single Item' for standalone detail pages.",
         )
 
-    with col_container:
-        if extraction_mode == "Repeated Items (Collection)":
-            container_selector = st.text_input(
-                "Container CSS Selector:",
-                value=default_container if default_container else "",
-                placeholder="e.g. div.quote, article.product_pod, .item",
-                help="CSS selector matching each item card / row.",
-            )
-        else:
-            container_selector = None
-            st.caption("ℹ️ Single item mode: extracts one record directly from the page DOM.")
+    timeout     = st.slider("Request Timeout (s)", 1.0, 30.0, 10.0, step=1.0)
+    max_bytes   = st.slider("Max Page Size (MB)",   1,   20,   5) * 1024 * 1024
+    max_redirects = st.slider("Max Redirect Hops",  0,   10,   5)
+    sanitize_csv  = st.checkbox("OWASP CSV Formula Injection Defence", value=True)
 
-    st.divider()
-
-    # Main Step 2: Extraction Plan Builder
-    st.subheader("2. Extraction Plan Studio")
-    st.caption("Define CSS selectors and target types for each field. Null values are strictly reported—no hallucinated data.")
+    st.markdown("**Manual Field Definitions** *(overrides AI plan)*")
 
     if "plan_fields" in st.session_state:
         initial_fields = st.session_state["plan_fields"]
-    elif template_choice == "Tech Products Catalog (Offline Fixture)":
-        initial_fields = [
-            {"name": "product_id", "selector": ".", "extract": "attr", "attr_name": "data-product-id", "data_type": "string", "regex": "", "required": True},
-            {"name": "title", "selector": "h2.product-title", "extract": "text", "attr_name": "", "data_type": "string", "regex": "", "required": True},
-            {"name": "price", "selector": ".product-price", "extract": "text", "attr_name": "", "data_type": "float", "regex": r"\$([\d.]+)", "required": False},
-            {"name": "rating", "selector": ".product-rating", "extract": "text", "attr_name": "", "data_type": "float", "regex": "", "required": False},
-            {"name": "review_count", "selector": ".review-count", "extract": "text", "attr_name": "", "data_type": "integer", "regex": r"\((\d[\d,]*)\s+reviews\)", "required": False},
-            {"name": "out_of_stock", "selector": ".stock-badge.out-of-stock", "extract": "text", "attr_name": "", "data_type": "boolean", "regex": "", "required": False},
-        ]
     else:
-        initial_fields = [
-            {"name": "title", "selector": "h1", "extract": "text", "attr_name": "", "data_type": "string", "regex": "", "required": True},
-            {"name": "description", "selector": "p", "extract": "text", "attr_name": "", "data_type": "string", "regex": "", "required": False},
-        ]
+        initial_fields = []
 
-    # Field Editor
     edited_df = st.data_editor(
-        pd.DataFrame(initial_fields),
+        pd.DataFrame(initial_fields) if initial_fields else pd.DataFrame(columns=["name","selector","extract","attr_name","data_type","regex","required"]),
         num_rows="dynamic",
         use_container_width=True,
         column_config={
-            "name": st.column_config.TextColumn("Field Name", required=True),
-            "selector": st.column_config.TextColumn("CSS Selector", required=True),
-            "extract": st.column_config.SelectboxColumn("Extract Mode", options=["text", "attr", "html"], default="text"),
-            "attr_name": st.column_config.TextColumn("Attribute Name (if attr)"),
-            "data_type": st.column_config.SelectboxColumn("Data Type", options=["string", "integer", "float", "boolean", "url"], default="string"),
-            "regex": st.column_config.TextColumn("Regex Pattern (optional)"),
-            "required": st.column_config.CheckboxColumn("Required?", default=False),
+            "name":      st.column_config.TextColumn("Field Name",   required=True),
+            "selector":  st.column_config.TextColumn("CSS Selector", required=True),
+            "extract":   st.column_config.SelectboxColumn("Extract", options=["text","attr","html"], default="text"),
+            "attr_name": st.column_config.TextColumn("Attribute (if attr)"),
+            "data_type": st.column_config.SelectboxColumn("Data Type", options=["string","integer","float","boolean","url"], default="string"),
+            "regex":     st.column_config.TextColumn("Regex (optional)"),
+            "required":  st.column_config.CheckboxColumn("Required?", default=False),
         },
         key="fields_editor",
     )
 
-    st.divider()
+st.divider()
 
-    # Main Step 3: Run Execution
-    st.subheader("3. Pipeline Execution")
 
-    run_clicked = st.button("🚀 Run Extraction Pipeline", type="primary", width="stretch")
+# ═══════════════════════════════════════════════════════════════════════════════
+#  STEP 3 — Extract & Download
+# ═══════════════════════════════════════════════════════════════════════════════
+st.markdown('<span class="step-badge">Step 3 of 3</span>', unsafe_allow_html=True)
+st.markdown('<p class="step-title">🚀 Extract & Download</p>', unsafe_allow_html=True)
+st.markdown('<p class="step-hint">Hit the button below. We\'ll fetch the page, detect the data, and give you a clean file.</p>', unsafe_allow_html=True)
 
-    if run_clicked:
-        # Build FieldContracts
+run_clicked = st.button("⚡ Extract Data Now", type="primary", use_container_width=True)
+
+if run_clicked:
+    # ── Validation ────────────────────────────────────────────────────────────
+    if not target_url or not url_ok(target_url):
+        st.error("Please enter a valid website URL in Step 1 first.")
+        st.stop()
+
+    with st.status("Working on it…", expanded=True) as status_box:
+
+        # ── Determine container & fields ──────────────────────────────────────
+        container_selector = container_selector_override.strip() if container_selector_override.strip() else None
         field_contracts: List[FieldContract] = []
-        has_errors = False
 
-        for idx, row in edited_df.iterrows():
-            try:
-                contract = FieldContract(
-                    name=str(row["name"]).strip(),
-                    selector=str(row["selector"]).strip(),
-                    extract=str(row["extract"]).strip(),
-                    attr_name=str(row["attr_name"]).strip() if str(row.get("attr_name", "")).strip() else None,
-                    regex=str(row["regex"]).strip() if str(row.get("regex", "")).strip() else None,
-                    data_type=DataType(str(row["data_type"]).strip()),
-                    required=bool(row.get("required", False)),
-                )
-                field_contracts.append(contract)
-            except Exception as exc:
-                st.error(f"Row {idx + 1} ({row.get('name')}): {exc}")
-                has_errors = True
+        # Manual fields take priority if the user filled them in
+        manual_rows = [r for _, r in edited_df.iterrows() if str(r.get("name","")).strip() and str(r.get("selector","")).strip()]
 
-        if not has_errors and field_contracts:
-            if not target_url or target_url.strip() == "https://example.com":
-                st.warning("⚠️ 'https://example.com' is a placeholder domain. Please enter your real target website URL (e.g. `https://quotes.toscrape.com/` or `https://books.toscrape.com/`).")
-            else:
+        if manual_rows:
+            st.write("🔧 Using manually defined fields…")
+            for idx, row in edited_df.iterrows():
+                name_val = str(row.get("name", "")).strip()
+                sel_val  = str(row.get("selector", "")).strip()
+                if not name_val or not sel_val:
+                    continue
                 try:
-                    plan = ExtractionPlan(
-                        target_url=target_url,
-                        container_selector=container_selector if extraction_mode == "Repeated Items (Collection)" else None,
-                        fields=field_contracts,
-                        timeout=timeout,
-                        max_bytes=max_bytes,
-                        max_redirects=max_redirects,
-                    )
-
-                    pipeline = ExtractionPipeline()
-
-                    with st.spinner("Executing extraction and security guardrails..."):
-                        if is_offline_fixture:
-                            sample_html = load_fixture_html()
-                            result: PipelineResult = pipeline.run_offline(plan, sample_html)
-                        else:
-                            result = pipeline.run(plan, verify_dns=True)
-
-                    st.session_state["last_result"] = result
-
-                    # Auto-save extraction run to SQLite database
-                    try:
-                        with get_db_session() as session:
-                            repo = JobRepository(session)
-                            saved_job = repo.save_job(result, quality=result.quality_assessment)
-                            st.session_state["last_saved_job_id"] = saved_job.id
-                    except Exception as db_err:
-                        st.warning(f"Could not persist run to database: {db_err}")
-
+                    field_contracts.append(FieldContract(
+                        name=name_val,
+                        selector=sel_val,
+                        extract=str(row.get("extract","text")).strip(),
+                        attr_name=str(row["attr_name"]).strip() if str(row.get("attr_name","")).strip() else None,
+                        regex=str(row["regex"]).strip() if str(row.get("regex","")).strip() else None,
+                        data_type=DataType(str(row.get("data_type","string")).strip()),
+                        required=bool(row.get("required", False)),
+                    ))
                 except Exception as exc:
-                    st.error(f"Pipeline initialization failed: {exc}")
-
-    # Display Results if Available
-    if "last_result" in st.session_state:
-        result: PipelineResult = st.session_state["last_result"]
-
-        st.subheader("📊 Extraction Quality & Network Telemetry")
-
-        if result.quality_assessment:
-            qa: QualityAssessment = result.quality_assessment
-            col_m1, col_m2, col_m3, col_m4, col_m5 = st.columns(5)
-            with col_m1:
-                st.metric("Total Records", qa.total_records)
-            with col_m2:
-                st.metric("Composite Quality", f"{qa.quality_score:.1f}%", f"Grade {qa.quality_grade}")
-            with col_m3:
-                st.metric("Completeness", f"{qa.completeness_score:.1f}%")
-            with col_m4:
-                st.metric("Validity", f"{qa.validity_score:.1f}%")
-            with col_m5:
-                st.metric("Uniqueness", f"{qa.uniqueness_score:.1f}%")
+                    st.warning(f"Skipped row {idx+1} ({name_val}): {exc}")
         else:
-            col_m1, col_m2, col_m3, col_m4, col_m5 = st.columns(5)
-            with col_m1:
-                st.metric("Total Records", result.quality_report.total_records)
-            with col_m2:
-                st.metric("Valid Records", result.quality_report.valid_records)
-            with col_m3:
-                st.metric("Completeness", f"{result.quality_report.completeness_score}%")
-            with col_m4:
-                status_txt = f"{result.telemetry.status_code} OK" if result.telemetry.success else "Failed"
-                st.metric("HTTP Status", status_txt)
-            with col_m5:
-                st.metric("Latency", f"{result.telemetry.latency_seconds}s")
+            # ── AI / Heuristic planning ───────────────────────────────────────
+            st.write("🤖 Analysing the page and auto-detecting fields…")
+            try:
+                from web_data_forge.security.network_guard import fetch_html
+                plan_html, _, _ = fetch_html(target_url, verify_dns=False, timeout=timeout)
 
-        if st.session_state.get("last_saved_job_id"):
-            st.caption(f"💾 *Persisted to SQLite database (Job ID: `{st.session_state['last_saved_job_id']}`)*")
-
-        if not result.telemetry.success:
-            st.error(f"Execution Error: {result.telemetry.error_message}")
-
-        # Results Table
-        st.subheader("📋 Collected Dataset")
-        if result.records:
-            df_records = pd.DataFrame(result.records)
-            st.dataframe(df_records, use_container_width=True)
-
-            # Safe Export Buttons
-            st.subheader("📥 Safe Data Exports")
-            col_csv, col_json, _ = st.columns([1, 1, 2])
-
-            with col_csv:
-                csv_data = export_csv(result.records, sanitize_formulas=sanitize_csv)
-                st.download_button(
-                    label="📄 Download Clean CSV",
-                    data=csv_data.encode("utf-8-sig"),
-                    file_name="extracted_data.csv",
-                    mime="text/csv",
-                    help="Formula-injection sanitized CSV file (UTF-8 BOM encoded for Excel compatibility).",
-                    width="stretch",
+                planner = AiPlanner(
+                    api_key=gemini_api_key or None,
+                    model_name=gemini_model,
+                )
+                generated_plan = planner.plan_from_html(
+                    user_instruction=ai_prompt,
+                    html=plan_html,
+                    target_url=target_url,
+                    allow_fallback=True,
                 )
 
-            with col_json:
-                json_data = export_json(result.records)
-                st.download_button(
-                    label="📦 Download JSON",
-                    data=json_data,
-                    file_name="extracted_data.json",
-                    mime="application/json",
-                    width="stretch",
-                )
+                if not container_selector:
+                    container_selector = generated_plan.container_selector
 
-            # Audit Inspection
-            with st.expander("🔍 Quality Audit & Missing Fields Breakdown"):
-                if result.quality_assessment:
-                    st.json(result.quality_assessment.model_dump())
-                else:
-                    st.json(result.quality_report.missing_fields_summary)
-        else:
-            st.info("No records extracted.")
-            if result.plan.container_selector:
-                st.warning(
-                    f"💡 No elements matched container selector `{result.plan.container_selector}` on `{result.plan.target_url}`. "
-                    "Please verify that the target URL is correct and that the container CSS selector exists in the page HTML."
-                )
+                field_contracts = list(generated_plan.fields)
+                st.session_state["plan_container"] = container_selector or ""
+                st.session_state["plan_fields"] = [
+                    {
+                        "name": f.name,
+                        "selector": f.selector,
+                        "extract": f.extract,
+                        "attr_name": f.attr_name or "",
+                        "data_type": f.data_type.value if hasattr(f.data_type, "value") else str(f.data_type),
+                        "regex": f.regex or "",
+                        "required": f.required,
+                    }
+                    for f in field_contracts
+                ]
+                st.write(f"✅ Detected **{len(field_contracts)}** fields: {', '.join(f'`{f.name}`' for f in field_contracts)}")
+                st.write(f"🗂️ Container: `{container_selector}`")
+            except PlannerError as err:
+                st.error(f"Planning failed: {err.message}")
+                st.stop()
+            except Exception as err:
+                st.error(f"Could not analyse the page: {err}")
+                st.stop()
 
-# Tab 2: Job History & Datasets
-with tab_history:
-    st.subheader("📜 Extraction Job History")
-    st.caption("All pipeline runs stored locally in SQLite with full telemetry and record snapshots.")
+        if not field_contracts:
+            st.error("No fields to extract. Please describe what data you want in Step 2.")
+            st.stop()
 
+        # ── Run pipeline ──────────────────────────────────────────────────────
+        st.write("⚙️ Extracting data and validating quality…")
+        try:
+            plan = ExtractionPlan(
+                target_url=target_url,
+                container_selector=container_selector if container_selector else None,
+                fields=field_contracts,
+                timeout=timeout,
+                max_bytes=max_bytes,
+                max_redirects=max_redirects,
+            )
+            pipeline = ExtractionPipeline()
+            result: PipelineResult = pipeline.run(plan, verify_dns=True)
+            st.session_state["last_result"] = result
+
+            # Persist to DB (silent on failure)
+            try:
+                with get_db_session() as session:
+                    repo = JobRepository(session)
+                    saved_job = repo.save_job(result, quality=result.quality_assessment)
+                    st.session_state["last_saved_job_id"] = saved_job.id
+            except Exception:
+                pass
+
+            status_box.update(label="Done! ✅", state="complete", expanded=False)
+        except Exception as exc:
+            st.error(f"Extraction failed: {exc}")
+            st.stop()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  RESULTS PANEL
+# ═══════════════════════════════════════════════════════════════════════════════
+if "last_result" in st.session_state:
+    result: PipelineResult = st.session_state["last_result"]
+
+    st.divider()
+    st.markdown("### 📊 Results")
+
+    # ── Summary scorecard ─────────────────────────────────────────────────────
+    if result.quality_assessment:
+        qa: QualityAssessment = result.quality_assessment
+        grade = qa.quality_grade
+        grade_css = GRADE_CSS.get(grade, "grade-F")
+
+        col_grade, col_metrics = st.columns([1, 3])
+        with col_grade:
+            st.markdown(f'<div class="{grade_css}" style="text-align:center;padding:16px 0;">Grade<br>{grade}</div>', unsafe_allow_html=True)
+        with col_metrics:
+            m1, m2, m3 = st.columns(3)
+            m1.metric("Records extracted", qa.total_records)
+            m2.metric("Data completeness",  f"{qa.completeness_score:.0f}%")
+            m3.metric("All records valid",  f"{qa.validity_score:.0f}%")
+    else:
+        total = result.quality_report.total_records
+        st.metric("Records extracted", total)
+
+    # ── No records warning ────────────────────────────────────────────────────
+    if not result.records:
+        st.warning(
+            f"No data was found on this page. "
+            f"The selectors may not match the page structure. "
+            f"Try the **Advanced settings** above to adjust the Container CSS Selector "
+            f"(currently: `{result.plan.container_selector or 'none'}`)."
+        )
+
+    # ── Data table ────────────────────────────────────────────────────────────
+    else:
+        df_records = pd.DataFrame(result.records)
+        st.dataframe(df_records, use_container_width=True, height=300)
+
+        # ── Download buttons ──────────────────────────────────────────────────
+        st.markdown("#### 📥 Download Your Data")
+        dl_col1, dl_col2 = st.columns(2)
+
+        with dl_col1:
+            csv_data = export_csv(result.records, sanitize_formulas=True)
+            st.download_button(
+                label="⬇️ Download as CSV (Excel-ready)",
+                data=csv_data.encode("utf-8-sig"),
+                file_name="extracted_data.csv",
+                mime="text/csv",
+                use_container_width=True,
+                help="Opens cleanly in Microsoft Excel and Google Sheets.",
+            )
+        with dl_col2:
+            json_data = export_json(result.records)
+            st.download_button(
+                label="⬇️ Download as JSON",
+                data=json_data,
+                file_name="extracted_data.json",
+                mime="application/json",
+                use_container_width=True,
+                help="For developers — machine-readable structured data.",
+            )
+
+        # ── Reset ─────────────────────────────────────────────────────────────
+        if st.button("🔄 Start a new extraction", use_container_width=False):
+            for key in ["last_result", "last_saved_job_id", "plan_fields", "plan_container", "target_url", "ai_prompt"]:
+                st.session_state.pop(key, None)
+            st.rerun()
+
+        # ── Expert: quality breakdown ─────────────────────────────────────────
+        with st.expander("🔍 Detailed quality report"):
+            if result.quality_assessment:
+                st.json(result.quality_assessment.model_dump())
+            else:
+                st.json(result.quality_report.missing_fields_summary)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  JOB HISTORY (bottom, collapsed)
+# ═══════════════════════════════════════════════════════════════════════════════
+st.divider()
+with st.expander("📜 Extraction History"):
     try:
         with get_db_session() as session:
             repo = JobRepository(session)
             jobs = repo.list_jobs(limit=50)
 
             if not jobs:
-                st.info("No saved extraction jobs yet. Run a pipeline in the Extraction Studio tab to start tracking.")
+                st.info("No extractions yet. Run your first extraction above!")
             else:
-                total_jobs = len(jobs)
-                avg_quality = round(sum(j.quality_score for j in jobs) / total_jobs, 1) if total_jobs > 0 else 0
-                total_rec = sum(j.total_records for j in jobs)
-
-                col_hj1, col_hj2, col_hj3 = st.columns(3)
-                col_hj1.metric("Total Recorded Runs", total_jobs)
-                col_hj2.metric("Average Quality Score", f"{avg_quality}%")
-                col_hj3.metric("Total Records Collected", total_rec)
-
-                st.divider()
-
-                # Table of jobs
                 jobs_data = [
                     {
-                        "Job ID": j.id[:8] + "...",
-                        "Timestamp (UTC)": j.created_at.strftime("%Y-%m-%d %H:%M:%S") if j.created_at else "",
-                        "Target URL": j.target_url,
-                        "Status": j.status,
+                        "When":    j.created_at.strftime("%Y-%m-%d %H:%M") if j.created_at else "",
+                        "Website": j.target_url,
                         "Records": j.total_records,
-                        "Valid": j.valid_records,
-                        "Grade": j.quality_grade,
-                        "Quality": f"{j.quality_score:.1f}%",
+                        "Grade":   j.quality_grade,
+                        "Quality": f"{j.quality_score:.0f}%",
+                        "Status":  j.status,
                     }
                     for j in jobs
                 ]
                 st.dataframe(pd.DataFrame(jobs_data), use_container_width=True)
 
-                st.subheader("🔍 Inspect & Export Past Job")
+                # Inspect / re-download a past job
+                st.markdown("**Re-download a past job:**")
                 job_options = {
-                    f"{j.id[:8]}... | {j.target_url} ({j.created_at.strftime('%Y-%m-%d %H:%M') if j.created_at else ''})": j.id
+                    f"{j.created_at.strftime('%Y-%m-%d %H:%M') if j.created_at else ''} — {j.target_url} ({j.total_records} records, Grade {j.quality_grade})": j.id
                     for j in jobs
                 }
-                selected_label = st.selectbox("Select Job to Inspect:", list(job_options.keys()))
-                selected_job_id = job_options[selected_label]
-
-                selected_job = repo.get_job(selected_job_id)
+                selected_label = st.selectbox("Select a past job:", list(job_options.keys()), label_visibility="collapsed")
+                selected_job = repo.get_job(job_options[selected_label])
                 if selected_job:
-                    past_records = repo.get_job_records(selected_job_id)
-                    col_det1, col_det2 = st.columns(2)
-                    with col_det1:
-                        st.markdown(f"**Target URL:** `{selected_job.target_url}`")
-                        st.markdown(f"**Quality Score:** {selected_job.quality_score}% (Grade **{selected_job.quality_grade}**)")
-                    with col_det2:
-                        st.markdown(f"**Status:** `{selected_job.status}` | **Records:** {selected_job.total_records}")
-                        st.markdown(f"**Full Job UUID:** `{selected_job.id}`")
-
+                    past_records = repo.get_job_records(selected_job.id)
                     if past_records:
-                        st.dataframe(pd.DataFrame(past_records), use_container_width=True)
-                        col_dcsv, col_djson, col_del = st.columns([1, 1, 1])
-                        with col_dcsv:
-                            csv_bytes = export_csv(past_records, sanitize_formulas=True).encode("utf-8-sig")
+                        hcol1, hcol2 = st.columns(2)
+                        with hcol1:
                             st.download_button(
-                                "📄 Re-Download CSV",
-                                data=csv_bytes,
-                                file_name=f"job_{selected_job.id[:8]}_export.csv",
+                                "⬇️ CSV",
+                                data=export_csv(past_records, sanitize_formulas=True).encode("utf-8-sig"),
+                                file_name=f"job_{selected_job.id[:8]}.csv",
                                 mime="text/csv",
-                                width="stretch",
-                                key=f"dl_csv_{selected_job.id}",
+                                use_container_width=True,
+                                key=f"h_csv_{selected_job.id}",
                             )
-                        with col_djson:
+                        with hcol2:
                             st.download_button(
-                                "📦 Re-Download JSON",
+                                "⬇️ JSON",
                                 data=export_json(past_records),
-                                file_name=f"job_{selected_job.id[:8]}_export.json",
+                                file_name=f"job_{selected_job.id[:8]}.json",
                                 mime="application/json",
-                                width="stretch",
-                                key=f"dl_json_{selected_job.id}",
+                                use_container_width=True,
+                                key=f"h_json_{selected_job.id}",
                             )
-                        with col_del:
-                            if st.button("🗑️ Delete Job", type="secondary", width="stretch", key=f"del_{selected_job.id}"):
-                                repo.delete_job(selected_job.id)
-                                st.success("Job deleted.")
-                                st.rerun()
+                        if st.button("🗑️ Delete this job", key=f"del_{selected_job.id}"):
+                            repo.delete_job(selected_job.id)
+                            st.success("Deleted.")
+                            st.rerun()
+                    else:
+                        st.info("No records stored for this job.")
     except Exception as exc:
-        st.error(f"Error accessing database: {exc}")
-
+        st.error(f"Could not load history: {exc}")
